@@ -277,6 +277,9 @@ class MethodReturnValue(CoerciveIntFlag):
 class TableBordersLayout(CoerciveEnum):
     "Defines how to render table borders"
 
+    PER_CELL = intern("PER_CELL")
+    "Handle each cell individual based on 'borders' cell attribute. No borders when None"
+
     ALL = intern("ALL")
     "Draw all table cells borders"
 

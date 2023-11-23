@@ -367,14 +367,17 @@ class Table:
                 x1 + col_width
             )  # already includes gutter for cells spanning multiple columns
             y2 = y1 + cell_height
-
+            if self._borders_layout == TableBordersLayout.PER_CELL:
+                borders = cell.borders
+            else:
+                borders = self.get_cell_border(i, j)
             draw_box_borders(
                 self._fpdf,
                 x1,
                 y1,
                 x2,
                 y2,
-                border=self.get_cell_border(i, j),
+                border=borders,
                 fill_color=style.fill_color if style else None,
             )
 
@@ -593,6 +596,7 @@ class Row:
         colspan=1,
         padding=None,
         link=None,
+        borders=None
     ):
         """
         Adds a cell to the row.
@@ -610,6 +614,7 @@ class Row:
             colspan (int): optional number of columns this cell should span.
             padding (tuple): optional padding (left, top, right, bottom) for the cell.
             link (str, int): optional link, either an URL or an integer returned by `FPDF.add_link`, defining an internal link to a page
+            borders (str): optional per-cell borders specification
 
         """
         if text and img:
@@ -624,7 +629,7 @@ class Row:
             if font_face not in (self.style, self._table._initial_style):
                 style = font_face
         cell = Cell(
-            text, align, v_align, style, img, img_fill_width, colspan, padding, link
+            text, align, v_align, style, img, img_fill_width, colspan, padding, link, borders
         )
         self.cells.append(cell)
         return cell
@@ -643,6 +648,7 @@ class Cell:
         "colspan",
         "padding",
         "link",
+        "borders"
     )
     text: str
     align: Optional[Union[str, Align]]
@@ -653,6 +659,7 @@ class Cell:
     colspan: int
     padding: Optional[Union[int, tuple, type(None)]]
     link: Optional[Union[str, int]]
+    borders: Optional[str]
 
     def write(self, text, align=None):
         raise NotImplementedError("Not implemented yet")
@@ -695,16 +702,41 @@ def draw_box_borders(pdf, x1, y1, x2, y2, border, fill_color=None):
         sl.append(f"{x1:.2f} {y2:.2f} " f"{x2 - x1:.2f} {y1 - y2:.2f} re {op}")
     elif border == 1:
         sl.append(f"{x1:.2f} {y2:.2f} " f"{x2 - x1:.2f} {y1 - y2:.2f} re S")
+    w = 1
+    def getwidth(border, b):
+        p = border.index(b)
+        if (p+1)<len(border) and border[p + 1].isdigit():
+            return int(border[p + 1])
+        else:
+            return 1
 
     if isinstance(border, str):
         if "L" in border:
+            w_ = getwidth(border, 'L')
+            if w_ != w:
+                w = w_
+                sl.append(str(w) + " w") # Set width if mismatch
             sl.append(f"{x1:.2f} {y2:.2f} m " f"{x1:.2f} {y1:.2f} l S")
         if "B" in border:
+            w_ = getwidth(border, 'B')
+            if w_ != w:
+                w = w_
+                sl.append(str(w) + " w") # Set width if mismatch
             sl.append(f"{x1:.2f} {y2:.2f} m " f"{x2:.2f} {y2:.2f} l S")
         if "R" in border:
+            w_ = getwidth(border, 'R')
+            if w_ != w:
+                w = w_
+                sl.append(str(w) + " w") # Set width if mismatch
             sl.append(f"{x2:.2f} {y2:.2f} m " f"{x2:.2f} {y1:.2f} l S")
         if "T" in border:
+            w_ = getwidth(border, 'T')
+            if w_ != w:
+                w = w_
+                sl.append(str(w) + " w") # Set width if mismatch
             sl.append(f"{x1:.2f} {y1:.2f} m " f"{x2:.2f} {y1:.2f} l S")
+    if w != 1:
+        sl.append("1 w") # Reset width to 1
 
     s = " ".join(sl)
     pdf._out(s)  # pylint: disable=protected-access
