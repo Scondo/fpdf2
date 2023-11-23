@@ -1066,6 +1066,9 @@ class FPDF(GraphicsStateMixin, TextRegionMixin):
         Args:
             width (float): the width in user unit
         """
+        if self.line_width == width:
+            # small optimisation to not set width twice
+            return
         self.line_width = width
         if self.page > 0:
             self._out(f"{width * self.k:.2f} w")

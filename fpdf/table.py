@@ -683,25 +683,11 @@ def draw_box_borders(pdf, x1, y1, x2, y2, border, fill_color=None):
         prev_fill_color = pdf.fill_color
         pdf.set_fill_color(fill_color)
 
-    sl = []
-
-    k = pdf.k
-
-    # y top to bottom instead of bottom to top
-    y1 = pdf.h - y1
-    y2 = pdf.h - y2
-
-    # scale
-    x1 *= k
-    x2 *= k
-    y2 *= k
-    y1 *= k
 
     if fill_color:
-        op = "B" if border == 1 else "f"
-        sl.append(f"{x1:.2f} {y2:.2f} " f"{x2 - x1:.2f} {y1 - y2:.2f} re {op}")
+        pdf.rect(x1, y2, x2 - x1, y1 - y2, "DF" if border == 1 else "F")
     elif border == 1:
-        sl.append(f"{x1:.2f} {y2:.2f} " f"{x2 - x1:.2f} {y1 - y2:.2f} re S")
+        pdf.rect(x1, y2, x2 - x1, y1 - y2, "D")
     w = 1
     def getwidth(border, b):
         p = border.index(b)
@@ -711,35 +697,20 @@ def draw_box_borders(pdf, x1, y1, x2, y2, border, fill_color=None):
             return 1
 
     if isinstance(border, str):
+        _remember_linewidth = pdf.line_width
         if "L" in border:
-            w_ = getwidth(border, 'L')
-            if w_ != w:
-                w = w_
-                sl.append(str(w) + " w") # Set width if mismatch
-            sl.append(f"{x1:.2f} {y2:.2f} m " f"{x1:.2f} {y1:.2f} l S")
+            pdf.set_line_width(_remember_linewidth * getwidth(border, 'L'))
+            pdf.line(x1, y2, x1, y1)
         if "B" in border:
-            w_ = getwidth(border, 'B')
-            if w_ != w:
-                w = w_
-                sl.append(str(w) + " w") # Set width if mismatch
-            sl.append(f"{x1:.2f} {y2:.2f} m " f"{x2:.2f} {y2:.2f} l S")
+            pdf.set_line_width(_remember_linewidth * getwidth(border, 'B'))
+            pdf.line(x1, y2, x2, y2)
         if "R" in border:
-            w_ = getwidth(border, 'R')
-            if w_ != w:
-                w = w_
-                sl.append(str(w) + " w") # Set width if mismatch
-            sl.append(f"{x2:.2f} {y2:.2f} m " f"{x2:.2f} {y1:.2f} l S")
+            pdf.set_line_width(_remember_linewidth * getwidth(border, 'R'))
+            pdf.line(x2, y2, x2, y1)
         if "T" in border:
-            w_ = getwidth(border, 'T')
-            if w_ != w:
-                w = w_
-                sl.append(str(w) + " w") # Set width if mismatch
-            sl.append(f"{x1:.2f} {y1:.2f} m " f"{x2:.2f} {y1:.2f} l S")
-    if w != 1:
-        sl.append("1 w") # Reset width to 1
-
-    s = " ".join(sl)
-    pdf._out(s)  # pylint: disable=protected-access
+            pdf.set_line_width(_remember_linewidth * getwidth(border, 'T'))
+            pdf.line(x1, y1, x2, y1)
+        pdf.set_line_width(_remember_linewidth) # Reset width
 
     if fill_color:
         pdf.set_fill_color(prev_fill_color)
